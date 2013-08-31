@@ -2,6 +2,7 @@ __author__ = 'kent'
 
 from time import sleep
 import urllib.request
+from urllib.error import HTTPError
 from json import loads
 import os
 
@@ -10,7 +11,7 @@ import praw
 
 def get_links(subscribe):
     r = praw.Reddit(user_agent='User-Agent: rbot/1.0 by draculacwg')
-    submissions = r.get_subreddit(subscribe).get_hot(limit=20)
+    submissions = r.get_subreddit(subscribe).get_hot(limit=50)
     results = list()
     for submission in submissions:
         results.append(submission.url)
@@ -19,27 +20,30 @@ def get_links(subscribe):
 
 def download_images(subscribe, link, album=None):
     assert isinstance(link, str)
-    if link.endswith('.jpg') or link.endswith('.gif'):
-        if album is None:
-            folder = "../images/" + subscribe
-        else:
-            folder = "../images/" + subscribe + '/' + album
+    try:
+        if link.endswith('.jpg') or link.endswith('.gif'):
+            if album is None:
+                folder = "../images/" + subscribe
+            else:
+                folder = "../images/" + subscribe + '/' + album
 
-        filename = link[link.rindex('/') + 1:]
-        try:
-            os.makedirs(folder)
-        except FileExistsError:
-            pass
+            filename = link[link.rindex('/') + 1:]
+            try:
+                os.makedirs(folder)
+            except FileExistsError:
+                pass
 
-        path = folder + '/' + filename
+            path = folder + '/' + filename
 
-        try:
-            with open(path):
-                print('PASS: file exist =>' + path)
-        except IOError:
-            print("downloading : " + path)
-            urllib.request.urlretrieve(link, filename=path)
-
+            try:
+                with open(path):
+                    #print('PASS: file exist =>' + path)
+                    pass
+            except IOError:
+                print("downloading : " + path)
+                urllib.request.urlretrieve(link, filename=path)
+    except HTTPError:
+        print('download image fail:' + link)
 
 def album_json(album_id):
     url = 'https://api.imgur.com/3/gallery/album/%s/json' % (album_id)
@@ -69,8 +73,21 @@ def get_original_link_from_thumb(link):
 def is_album(link: str) -> bool:
     return link.find('/a/') != -1
 
+# 'nsfw', 'gonewild', 'RealGirls', 'NSFW_GIF', 'nsfw_gifs', 'LegalTeens', 'AsianGirls'
 
-subscribes = ['nsfw', 'gonewild', 'RealGirls', 'NSFW_GIF', 'nsfw_gifs', 'LegalTeens', 'AsianGirls']
+subscribes = [
+    'nsfw',
+    'gonewild',
+    'RealGirls',
+    'NSFW_GIF',
+    'nsfw_gifs',
+    'OnOff',
+    'LegalTeens',
+    'AsianGirls',
+    'koreangirls',
+    'AsianCuties',
+     'AsianHotties',
+    ]
 
 
 for subscribe in subscribes:
@@ -85,12 +102,16 @@ for subscribe in subscribes:
         elif is_album(link):
             print("album url: %s" % link)
             album_id = link[len('http://imgur.com/a/'):]
-            json = album_json(album_id)
-            images = json['data']['images']
-            for img in images:
-                download_images(subscribe, img['link'], album_id)
+            if album_id.endswith('#0'):
+                album_id = album_id[:-2]
+            try:
+                json = album_json(album_id)
+                images = json['data']['images']
+                for img in images:
+                    download_images(subscribe, img['link'], album_id)
+            except HTTPError:
+                print('download album fail:' + link)
         else:
             download_images(subscribe, link + '.jpg')
-    sleep(5)
 
 # TODO fetch this album : http://imgur.com/r/nsfw/top/all
