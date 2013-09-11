@@ -118,4 +118,5 @@ for subscribe in subscribes:
         else:
             download_images(subscribe, link + '.jpg')
 
+print("mission completed. may you have a nice day XD")            
 # TODO fetch this album : http://imgur.com/r/nsfw/top/all
