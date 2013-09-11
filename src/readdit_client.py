@@ -73,6 +73,7 @@ def get_original_link_from_thumb(link):
 def is_album(link: str) -> bool:
     return link.find('/a/') != -1
 
+
 # 'nsfw', 'gonewild', 'RealGirls', 'NSFW_GIF', 'nsfw_gifs', 'LegalTeens', 'AsianGirls'
 
 subscribes = [
@@ -101,7 +102,10 @@ for subscribe in subscribes:
             download_images(subscribe, new_link)
         elif is_album(link):
             print("album url: %s" % link)
-            album_id = link[len('http://imgur.com/a/'):]
+            if link.find('http://m.imgur.com/a/') != -1:
+                album_id = link[len('http://m.imgur.com/a/'):]
+            else:
+                album_id = link[len('http://imgur.com/a/'):]
             if album_id.endswith('#0'):
                 album_id = album_id[:-2]
             try:
